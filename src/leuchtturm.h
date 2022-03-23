@@ -16,43 +16,54 @@
 #define OBEN_HEIGHT 3
 #define OBEN_LENGTH 4
 
-
-enum modus_t{ 
-    m_beacon, m_strobe, m_blink, m_pulse
+enum modus_t
+{
+    m_beacon,
+    m_strobe,
+    m_blink,
+    m_pulse
 };
 
-enum etage_t {oben, unten, all};
-
-class Leuchtturm{
-    public:
-        Leuchtturm();   
-        void setMode(modus_t mode, etage_t etage=etage_t::all);
-        void setBrightness(int brightness, etage_t etage = etage_t::all);
-        void setColor(CRGB color, etage_t etage = etage_t::all);
-        void setLEDsActive(bool status, etage_t etage = etage_t::all);
-        void handle();
-        void clear(etage_t etage = etage_t::all);
-    private:
-        modus_t _modeOben;
-        modus_t _modeUnten;
-        bool    _obenActive         = false;
-        bool    _untenActive        = false;
-        bool    _LEDsActive         = false;
-        int     _globalBrightness   = 0;
-        int     _obenBrightness     = 0;
-        int     _untenBrightness    = 0;
-        CRGB    _obenColor          = CRGB::White;
-        CRGB    _untenColor         = CRGB::White;
-        CRGB    _globalColor        = CRGB::White;
-
-        void beacon(etage_t etage);
-        void strobe(etage_t etage);
-        void blink(etage_t etage=etage_t::all, int onTime=500, int offTime=1000);
-        void pulse(etage_t etage);
+enum etage_t
+{
+    oben,
+    unten,
+    all
 };
 
+class Leuchtturm
+{
+public:
+    Leuchtturm();
+    void setMode(modus_t mode, etage_t etage = etage_t::all);
+    void setBrightness(int brightness, etage_t etage = etage_t::all);
+    void setColor(CRGB color, etage_t etage = etage_t::all);
+    void setLEDsActive(bool status, etage_t etage = etage_t::all);
+    void setParams(int strobeOnTime = 1000, int strobeOffTime = 1000, int pulseSpeed=3);
+    void handle();
+    void clear(etage_t etage = etage_t::all);
 
-void setup_Leuchtturm();
-void beacon_low(uint8_t hue, uint8_t steps);
-void strobe_high(uint8_t hue);
-void testLEDs();
+private:
+    modus_t _modeOben;
+    modus_t _modeUnten;
+    bool _obenActive = false;
+    bool _untenActive = false;
+    bool _LEDsActive = false;
+    int _globalBrightness = 0;
+    int _obenBrightness = 0;
+    int _untenBrightness = 0;
+    CRGB _obenColor = CRGB::White;
+    CRGB _untenColor = CRGB::White;
+    CRGB _globalColor = CRGB::White;
+    int _strobeTimeOn = 1000;
+    int _strobeTimeOff = 1000;
+    int _pulseSpeed = 4;
+    bool _changePulseColor = true;
+    
+
+    void beacon(etage_t etage);
+    void strobe(etage_t etage);
+    void blink(etage_t etage = etage_t::all, int onTime = 500, int offTime = 1000);
+    void pulse(etage_t etage);
+};
+

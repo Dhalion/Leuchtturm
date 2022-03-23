@@ -19,22 +19,19 @@ Leuchtturm::Leuchtturm()
 
 void Leuchtturm::handle()
 {
-    // EVERY_N_BSECONDS(1)
-    // Serial.println(_modeUnten);
-    // Serial.println(_modeOben);
-    // Serial.printf("Colors oben: r:%dg:%dg:%d\n", this->_obenColor.r, this->_obenColor.g, this->_obenColor.b);
     switch (_modeOben)
     {
+    case modus_t::m_pulse:
+        this->pulse(etage_t::oben);
+        break;
     case modus_t::m_beacon:
         this->beacon(etage_t::oben);
         break;
     case modus_t::m_blink:
         this->blink(etage_t::oben);
         break;
-    case modus_t::m_pulse:
-        this->pulse(etage_t::oben);
-        break;
     case modus_t::m_strobe:
+        this->strobe(etage_t::oben);
         break;
     }
 
@@ -50,25 +47,27 @@ void Leuchtturm::handle()
         this->pulse(etage_t::unten);
         break;
     case modus_t::m_strobe:
+        this->strobe(etage_t::unten);
         break;
     }
+    FastLED.show();
 }
 
 void Leuchtturm::setMode(modus_t mode, etage_t etage)
 {
-    Serial.printf("Switching Mode in Etage %d to %d\n",etage, mode);
-    modus_t *_modeToSet = 0; 
+    Serial.printf("Switching Mode in Etage %d to %d\n", etage, mode);
+    modus_t *_modeToSet = 0;
 
-    switch (etage){
-        case etage_t::oben:
-            _modeToSet = &this->_modeOben;
-            break;
-        case etage_t::unten:
-            _modeToSet = &this->_modeUnten;
-            break;
+    switch (etage)
+    {
+    case etage_t::oben:
+        _modeToSet = &this->_modeOben;
+        break;
+    case etage_t::unten:
+        _modeToSet = &this->_modeUnten;
+        break;
     }
     *_modeToSet = mode;
-
 }
 
 void Leuchtturm::setBrightness(int brightness, etage_t etage)
@@ -191,7 +190,7 @@ void Leuchtturm::beacon(etage_t etage)
     }
 
     x++;
-    FastLED.show();
+    // FastLED.show();
 }
 
 void Leuchtturm::clear(etage_t etage)
@@ -221,8 +220,8 @@ void Leuchtturm::clear(etage_t etage)
 
 void Leuchtturm::strobe(etage_t etage)
 {
-    const int _timeOn = 1000;
-    const int _timeOff = 2000;
+    const int _timeOn = this->_strobeTimeOn;
+    const int _timeOff = this->_strobeTimeOn;
     static long _timeCount = 0;
     static int _start = 0;
     static int _end = 0;
@@ -251,136 +250,164 @@ void Leuchtturm::strobe(etage_t etage)
 
 void Leuchtturm::blink(etage_t etage, int onTime, int offTime)
 {
-    int _start      = 0;
-    int _end        = 0;
-    CRGB _color     = CRGB::Green;
-    static bool _status    = true;
-    static long _last      = millis();
-    if (_status && (millis() - _last >= onTime)) {  // Currently ON
+    int _start = 0;
+    int _end = 0;
+    CRGB _color = CRGB::Green;
+    static bool _status = true;
+    static long _last = millis();
+
+    if (_status && (millis() - _last >= onTime))
+    { // Currently ON
         // Turn off
         _status = false;
         _last = millis();
-    } else if (!_status && (millis() - _last >= offTime)) {
+    }
+    else if (!_status && (millis() - _last >= offTime))
+    {
         // Turn on
         _status = true;
         _last = millis();
-    } else {
+    }
+    else
+    {
         return; //  Do nothing until Timer runs out
     }
 
-    switch (etage) {
-        case etage_t::all:
-            _start  = 0;
-            _end    = NUM_LEDS;
-            _color = this->_globalColor;
-            break;
-        case etage_t::oben:
-            _start  = TOP_START_AT;
-            _end    = NUM_LEDS;
-            _color = this->_obenColor;
-            break;
-        case etage_t::unten:
-            _start  = 0;
-            _end    = TOP_START_AT;
-            _color = this->_untenColor;
-            break;
+    switch (etage)
+    {
+    case etage_t::all:
+        _start = 0;
+        _end = NUM_LEDS;
+        _color = this->_globalColor;
+        break;
+    case etage_t::oben:
+        _start = TOP_START_AT;
+        _end = NUM_LEDS;
+        _color = this->_obenColor;
+        break;
+    case etage_t::unten:
+        _start = 0;
+        _end = TOP_START_AT;
+        _color = this->_untenColor;
+        break;
     }
 
     // Enable/Disable
-    if (!_status) {
+    if (!_status)
+    {
         _color = CRGB::Black;
     }
 
     // Set LED Values
-    for (int i = _start; i < _end; i++) {
+    for (int i = _start; i < _end; i++)
+    {
         leds[i] = _color;
     }
     // Write to LED
-    FastLED.show();
+    // FastLED.show();
 }
 
 void Leuchtturm::pulse(etage_t etage)
 {
     // LED related Params
-    int _start          = 0;
-    int _end            = NUM_LEDS;
-    // Pulsing related parameters
-    static int _step    = 0;
-    const int _speed    = 3;
-    const int _maxSteps = 255;
-    static int _value   = 0;
-    CHSV _col           = rgb2hsv_approximate(CRGB::Black);
-    int _hue, _sat      = 0;
+    int _start = 0;
+    int _end = NUM_LEDS;
 
-    if (_step >= _maxSteps) {
+    // Colors cycling
+    CRGB _colorWheel[] = {CRGB::Red, CRGB::Green}; // Set of colors to cycle through
+    static uint8_t _currentColor = 0;              // Keep track of current color
+    static size_t _length = sizeof(_colorWheel) / sizeof(_colorWheel[0]);
+
+    // Pulsing related parameters
+    static int _step = 0;
+    const int _speed = this->_pulseSpeed;
+    const int _maxSteps = 255;
+    static int _value = 0;
+
+    CHSV _col = rgb2hsv_approximate(CRGB::Black);
+
+    int _hue, _sat = 0;
+
+    if (_step >= _maxSteps)
+    {
         _step = 0;
     }
 
     // Set correct range of LEDs
-    switch(etage) {
-        case etage_t::unten:
-            _start  = 0;
-            _end    = TOP_START_AT;
+    switch (etage)
+    {
+    case etage_t::unten:
+        _start = 0;
+        _end = TOP_START_AT;
+        if (this->_changePulseColor)
+        {
+            _col = rgb2hsv_approximate(_colorWheel[_currentColor]);
+        }
+        else
+        {
             _col = rgb2hsv_approximate(this->_untenColor);
-            break;
-        case etage_t::oben:
-            _start  = TOP_START_AT;
-            _end    = NUM_LEDS;
+        }
+        break;
+    case etage_t::oben:
+        _start = TOP_START_AT;
+        _end = NUM_LEDS;
+        if (this->_changePulseColor)
+        {
+            _col = rgb2hsv_approximate(_colorWheel[_currentColor]);
+        }
+        else
+        {
             _col = rgb2hsv_approximate(this->_obenColor);
-            break;
-        case etage_t::all:
-            _start  = 0;
-            _end    = NUM_LEDS;
+        }
+        break;
+    case etage_t::all:
+        _start = 0;
+        _end = NUM_LEDS;
+        if (this->_changePulseColor)
+        {
+            _col = rgb2hsv_approximate(_colorWheel[_currentColor]);
+        }
+        else
+        {
             _col = rgb2hsv_approximate(this->_globalColor);
-            break;
+        }
+        break;
+    }
+    // *_useColor = _col;
+    // Serial.printf("Using Color Nr. %d\nCurrent Step: %d\n\nValue:%d\n\n", _currentColor, _step, _value);
+    // Serial.printf("Color set: h:%d,s:%d,v:%d\n", _col.h, _col.s, _col.v);
+
+    // Change colors stuff
+    if (_value <= 2)
+    {
+        // Serial.printf("Value:%d\nColor:%d\n", _value, _currentColor);
+        _currentColor++;
     }
 
+    if (_currentColor >= _length)
+    {
+        // Serial.printf("Resetting Color.\n");
+        _currentColor = 0;
+    }
 
     // Create Sine value for current step and map to 0-255
-    _value  = sin8(_step);
+    _value = sin8(_step);
 
     // Write LED Values
-    for (int i = _start; i < _end; i++) {
+    for (int i = _start; i < _end; i++)
+    {
         leds[i] = CHSV(_col.h, _col.s, _value);
     }
     // Push to LED strip
-    FastLED.show();
+    // FastLED.show();
 
     _step += _speed;
 }
 
-
-
-void strobe_high(uint8_t hue)
+void Leuchtturm::setParams(int strobeOnTime, int strobeOffTime, int pulseSpeed)
 {
-    static int value = 0;
-
-    for (int led = TOP_START_AT; led < NUM_LEDS; led++)
-    {
-        leds[led] = CHSV(hue, 255, value);
-    }
-    FastLED.show();
-    if (value == 0)
-    {
-        value = 255;
-    }
-    else
-    {
-        value = 0;
-    }
-}
-
-void testLEDs()
-{
-    // Serial.println("Testing leds...");
-    for (int i = 0; i < NUM_LEDS; i++)
-    {
-        // Serial.printf("Testing LED Nr. %d\n", i);
-        leds[i] = CRGB::Red;
-    }
-    FastLED.show();
-    delay(1000);
-    // Serial.println("*** LED Test finished ***");
-    FastLED.clear(true);
-    delay(1000);
+    this->_strobeTimeOn = strobeOnTime;
+    this->_strobeTimeOff = strobeOffTime;
+    this->_pulseSpeed = pulseSpeed;
+    return;
 }
