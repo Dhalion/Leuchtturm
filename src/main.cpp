@@ -20,12 +20,5 @@ void setup()
 void loop()
 {
   lt.handle();
-  delay(20);
-  // testLEDs();
 
-    // Serial.println("Changing color");
-  
-  // EVERY_N_MILLISECONDS(20) beacon_low(240,1);
-  // EVERY_N_MILLISECONDS(1000) strobe_high(100);
-  // beacon(20, 240, 1);
 }

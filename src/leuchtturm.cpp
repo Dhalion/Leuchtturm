@@ -19,6 +19,13 @@ Leuchtturm::Leuchtturm()
 
 void Leuchtturm::handle()
 {
+    static long last = 0;
+
+    if (!(millis() - last >= 20)) {
+        return;
+    } 
+
+
     switch (_modeOben)
     {
     case modus_t::m_pulse:
@@ -51,6 +58,7 @@ void Leuchtturm::handle()
         break;
     }
     FastLED.show();
+    last = millis();
 }
 
 void Leuchtturm::setMode(modus_t mode, etage_t etage)
